@@ -2,9 +2,11 @@ package main
 
 import (
 	"log"
+
+	server "github.com/gabrieldillenburg/post-flow/cmd"
 )
 
 func main() {
-	server := InitializeServer()
+	server := server.InitializeServer()
 	log.Fatal(server.ListenAndServe())
 }
