@@ -1,0 +1,27 @@
+version: '3'
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=[example]
+      - DB_USER=[example]
+      - DB_PASSWORD=[example]
+      - DB_NAME=[example]
+      - DB_PORT=5432
+  db:
+    image: postgres
+    environment:
+      POSTGRES_DB: mydatabase
+      POSTGRES_USER: [userexample]
+      POSTGRES_PASSWORD: [pass example]
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:[path/example]
+
+volumes:
+  postgres_data:
