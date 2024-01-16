@@ -63,11 +63,3 @@ func ProcessVideosWorkflow(videos []DomainVideo) (string, error) {
 
 	return summary, nil
 }
-
-func SendToSummarizationAPI(results []TranscriptionResult) (string, error) {
-	panic("unimplemented")
-}
-
-func TranscriptionAPI(audioFile string) (string, error) {
-	panic("unimplemented")
-}
