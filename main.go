@@ -8,5 +8,6 @@ import (
 
 func main() {
 	server := server.InitializeServer()
+	log.Printf("Server starting on %s", server.Addr)
 	log.Fatal(server.ListenAndServe())
 }
