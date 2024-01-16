@@ -7,7 +7,7 @@ import (
 )
 
 func InitializeServer() *http.Server {
-	http.HandleFunc("/process", handler.YouTubeTranscriptorHandler)
+	http.HandleFunc("/transcribe", handler.YouTubeTranscriptorHandler)
 
 	server := &http.Server{Addr: ":8080"}
 	return server
