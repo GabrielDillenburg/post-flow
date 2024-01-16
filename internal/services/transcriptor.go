@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 )
 
@@ -15,12 +16,32 @@ func TranscriptionAPI(audioFilePath string) (string, error) {
 		return "", fmt.Errorf("error reading audio file: %w", err)
 	}
 
+	apiURL := os.Getenv("TRANSCRIPTION_API_URL")
+	bearerToken := os.Getenv("TRANSCRIPTION_API_TOKEN")
+
+	if apiURL == "" || bearerToken == "" {
+		return "", fmt.Errorf("environment variables for API URL and/or Token are not set")
+	}
+
+	// Append the max_new_tokens query parameter
+	maxNewTokens := "1000"
+	parsedURL, err := url.Parse(apiURL)
+	if err != nil {
+		return "", fmt.Errorf("error parsing API URL: %w", err)
+	}
+	query := parsedURL.Query()
+	query.Set("max_new_tokens", maxNewTokens)
+	parsedURL.RawQuery = query.Encode()
+	finalURL := parsedURL.String()
+
 	// Create a request to the transcription API
-	req, err := http.NewRequest("POST", "http://transcription.api/endpoint", bytes.NewBuffer(audioData))
+	req, err := http.NewRequest("POST", finalURL, bytes.NewBuffer(audioData))
 	if err != nil {
 		return "", fmt.Errorf("error creating request: %w", err)
 	}
-	req.Header.Set("Content-Type", "audio/mpeg") // Set the appropriate content type
+
+	req.Header.Set("Content-Type", "audio/mpeg")
+	req.Header.Set("Authorization", "Bearer"+bearerToken)
 
 	// Send the request
 	client := &http.Client{}
@@ -37,5 +58,4 @@ func TranscriptionAPI(audioFilePath string) (string, error) {
 	}
 
 	return string(body), nil
-
 }
