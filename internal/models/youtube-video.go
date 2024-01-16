@@ -1,6 +1,6 @@
 package youtube_videos
 
-type YouTubeResponse struct {
+type Video struct {
 	Kind          string       `json:"kind"`
 	Etag          string       `json:"etag"`
 	NextPageToken string       `json:"nextPageToken"`
