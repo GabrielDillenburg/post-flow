@@ -13,24 +13,30 @@ This project provides a service that searches for YouTube videos based on a quer
 ## Setup and Installation
 
 1. **Clone the Repository**:
+
    ```bash
    git clone https://github.com/GabrielDillenburg/post-flow/tree/main
    ```
+
 2. **Set Environment Variables**:
    - `YOUTUBE_API_KEY`: Your API key for the YouTube Data API.
    - `TRANSCRIPTION_API_URL`: The URL for the transcription service.
    - `TRANSCRIPTION_API_TOKEN`: The Bearer token for the transcription service.
    - `CHAT_GPT_API_URL`: The URL for the ChatGPT API.
 3. **Install Dependencies** (if any):
+
    ```bash
    go get ./...
    ```
+
 4. **Run the Service**:
+
    ```bash
    go run main.go 
    ```
+
    or
-   
+
    ```bash
     podman-compose up
    ```
@@ -63,4 +69,3 @@ Contributions to the project are welcome! Please create a pull request with your
 # License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
-
