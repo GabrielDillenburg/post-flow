@@ -15,16 +15,18 @@ type ChatGPTRequest struct {
 }
 
 func SendToSummarizationAPI(transcriptions []TranscriptionResult) (string, error) {
-	// Construct the prompt for ChatGPT
+	/* Construct the prompt for ChatGPT
+	Todo: see if is the correct structure, becase we need only one instruction,
+	one request to the gpt API with all video transcriptions.
+	*/
 	prompt := "Please summarize the following transcriptions:\n"
 	for _, t := range transcriptions {
 		prompt += fmt.Sprintf("Video ID %s: %s\n", t.VideoID, t.Transcription)
 	}
 
-	// Prepare ChatGPT request payload
 	gptRequest := ChatGPTRequest{
 		Prompt: prompt,
-		// Set other fields if necessary
+		// Set other fields if necessary. Todo: see the openAI docs
 	}
 
 	jsonData, err := json.Marshal(gptRequest)
@@ -32,8 +34,7 @@ func SendToSummarizationAPI(transcriptions []TranscriptionResult) (string, error
 		return "", fmt.Errorf("error marshalling request data: %w", err)
 	}
 
-	// Prepare the HTTP request to ChatGPT API
-	chatGPTURL := os.Getenv("CHAT_GPT_API_URL") // Ensure this environment variable is set
+	chatGPTURL := os.Getenv("CHAT_GPT_API_URL")
 	if chatGPTURL == "" {
 		return "", fmt.Errorf("CHAT_GPT_API_URL environment variable is not set")
 	}
@@ -43,11 +44,9 @@ func SendToSummarizationAPI(transcriptions []TranscriptionResult) (string, error
 		return "", fmt.Errorf("error creating request: %w", err)
 	}
 
-	// Include necessary headers, such as Authorization if required
 	req.Header.Set("Content-Type", "application/json")
-	// Example: req.Header.Set("Authorization", "Bearer YOUR_TOKEN_HERE")
+	// req.Header.Set("Authorization", "todo: set the gpt api env"
 
-	// Send the request
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
