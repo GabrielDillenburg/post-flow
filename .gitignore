@@ -2,3 +2,4 @@ env
 capture.pcap
 docker-compose.yml
 post-flow
+.vscode
