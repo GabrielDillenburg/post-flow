@@ -35,6 +35,8 @@ func SendToSummarizationAPI(transcriptions []TranscriptionResult) (string, error
 	}
 
 	chatGPTURL := os.Getenv("CHAT_GPT_API_URL")
+	gptApiToken := os.Getenv("GPT_API_TOKEN")
+
 	if chatGPTURL == "" {
 		return "", fmt.Errorf("CHAT_GPT_API_URL environment variable is not set")
 	}
@@ -45,7 +47,7 @@ func SendToSummarizationAPI(transcriptions []TranscriptionResult) (string, error
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	// req.Header.Set("Authorization", "todo: set the gpt api env"
+	req.Header.Set("Authorization", "Bearer "+gptApiToken)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
