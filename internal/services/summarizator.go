@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 )
@@ -46,6 +47,8 @@ func SendToSummarizationAPI(transcriptions []TranscriptionResult) (string, error
 		return "", fmt.Errorf("error creating request: %w", err)
 	}
 
+	log.Printf("GPT API Token: %s", gptApiToken)
+
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+gptApiToken)
 
@@ -56,7 +59,10 @@ func SendToSummarizationAPI(transcriptions []TranscriptionResult) (string, error
 	}
 	defer resp.Body.Close()
 
-	// Read and return the response body
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("ChatGPT API returned non-OK status: %s", resp.Status)
+	}
+
 	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("error reading response body: %w", err)
