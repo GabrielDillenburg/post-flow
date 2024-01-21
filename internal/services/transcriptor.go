@@ -1,7 +1,6 @@
 package services
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,11 +9,12 @@ import (
 )
 
 func TranscriptionAPI(audioFilePath string) (string, error) {
-	// Read the audio file
-	audioData, err := os.ReadFile(audioFilePath)
+	// Open the audio file
+	audioFile, err := os.Open(audioFilePath)
 	if err != nil {
-		return "", fmt.Errorf("error reading audio file: %w", err)
+		return "", fmt.Errorf("error opening audio file: %w", err)
 	}
+	defer audioFile.Close()
 
 	apiURL := os.Getenv("TRANSCRIPTION_API_URL")
 	bearerToken := os.Getenv("TRANSCRIPTION_API_TOKEN")
@@ -23,25 +23,23 @@ func TranscriptionAPI(audioFilePath string) (string, error) {
 		return "", fmt.Errorf("environment variables for API URL and/or Token are not set")
 	}
 
-	// Append the max_new_tokens query parameter
-	maxNewTokens := "1000"
+	// Parse and prepare API URL
 	parsedURL, err := url.Parse(apiURL)
 	if err != nil {
 		return "", fmt.Errorf("error parsing API URL: %w", err)
 	}
 	query := parsedURL.Query()
-	query.Set("max_new_tokens", maxNewTokens)
+	query.Set("max_new_tokens", "1000") // Adjust parameter as needed
 	parsedURL.RawQuery = query.Encode()
-	finalURL := parsedURL.String()
 
 	// Create a request to the transcription API
-	req, err := http.NewRequest("POST", finalURL, bytes.NewBuffer(audioData))
+	req, err := http.NewRequest("POST", parsedURL.String(), audioFile)
 	if err != nil {
 		return "", fmt.Errorf("error creating request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "audio/mpeg")
-	req.Header.Set("Authorization", "Bearer"+bearerToken)
+	req.Header.Set("Authorization", "Bearer "+bearerToken)
 
 	// Send the request
 	client := &http.Client{}
@@ -51,7 +49,11 @@ func TranscriptionAPI(audioFilePath string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	// Read the response
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("transcription API returned non-OK status: %s", resp.Status)
+	}
+
+	// Read and return the response
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("error reading response body: %w", err)
