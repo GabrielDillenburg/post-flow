@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 
@@ -19,24 +18,23 @@ type DomainVideo struct {
 }
 
 func GetYouTubeVideos(q Query) ([]DomainVideo, error) {
-
 	apiKey := os.Getenv("YOUTUBE_API_KEY")
 	if apiKey == "" {
-		return nil, fmt.Errorf("error: YOUTUBE_API_KEY environment variable is not set")
+		return nil, fmt.Errorf("YOUTUBE_API_KEY environment variable is not set")
 	}
+
 	url := fmt.Sprintf("https://youtube.googleapis.com/youtube/v3/search?part=snippet&maxResults=10&q=%s&key=%s", q, apiKey)
 	resp, err := http.Get(url)
-
-	log.Printf("Response Status: %s, Headers: %v", resp.Status, resp.Header)
-
 	if err != nil {
 		return nil, fmt.Errorf("error fetching data from YouTube API: %w", err)
 	}
-
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("YouTube API returned non-OK status: %s", resp.Status)
+	}
 
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body: %w", err)
 	}
@@ -59,5 +57,4 @@ func GetYouTubeVideos(q Query) ([]DomainVideo, error) {
 	}
 
 	return videos, nil
-
 }
