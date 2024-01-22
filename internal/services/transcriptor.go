@@ -1,20 +1,20 @@
 package services
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
-	"net/url"
 	"os"
 )
 
 func TranscriptionAPI(audioFilePath string) (string, error) {
-	// Open the audio file
-	audioFile, err := os.Open(audioFilePath)
+	// Read the audio file into memory
+	audioData, err := os.ReadFile(audioFilePath)
 	if err != nil {
-		return "", fmt.Errorf("error opening audio file: %w", err)
+		return "", fmt.Errorf("error reading audio file: %w", err)
 	}
-	defer audioFile.Close()
 
 	apiURL := os.Getenv("TRANSCRIPTION_API_URL")
 	bearerToken := os.Getenv("TRANSCRIPTION_API_TOKEN")
@@ -23,25 +23,27 @@ func TranscriptionAPI(audioFilePath string) (string, error) {
 		return "", fmt.Errorf("environment variables for API URL and/or Token are not set")
 	}
 
-	// Parse and prepare API URL
-	parsedURL, err := url.Parse(apiURL)
-	if err != nil {
-		return "", fmt.Errorf("error parsing API URL: %w", err)
-	}
-	query := parsedURL.Query()
-	query.Set("max_new_tokens", "1000") // Adjust parameter as needed
-	parsedURL.RawQuery = query.Encode()
+	// Append query parameter to the API URL (if necessary)
+	// apiURL += "/?max_new_tokens=1000"
+	payload := bytes.NewReader(audioData)
 
 	// Create a request to the transcription API
-	req, err := http.NewRequest("POST", parsedURL.String(), audioFile)
+	req, err := http.NewRequest("POST", apiURL, payload)
 	if err != nil {
 		return "", fmt.Errorf("error creating request: %w", err)
 	}
 
-	req.Header.Set("Content-Type", "audio/mpeg")
-	req.Header.Set("Authorization", "Bearer "+bearerToken)
+	req.Header.Add("Content-Type", "audio/flac")
+	req.Header.Add("authorization", fmt.Sprintf("Bearer %s", bearerToken))
+	req.Header.Add("Accept", "application/json")
 
-	// Send the request
+	// Log the request for debugging
+	// to do: create an aspect strucuture to handle logs globally
+	log.Printf("Sending request to API URL: %s", apiURL)
+	log.Printf("Request headers: %+v", req.Header)
+	log.Printf("Size of audio file payload: %d bytes", len(audioData))
+	log.Printf("First 20 bytes of audio data: %x", audioData[:20])
+
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -49,7 +51,11 @@ func TranscriptionAPI(audioFilePath string) (string, error) {
 	}
 	defer resp.Body.Close()
 
+	// Log the response for debugging
+	// to do: create an aspect strucuture to handle logs globally
 	if resp.StatusCode != http.StatusOK {
+		responseBody, _ := io.ReadAll(resp.Body)
+		log.Printf("Transcription API returned non-OK status: %s, Response Body: %s", resp.Status, string(responseBody))
 		return "", fmt.Errorf("transcription API returned non-OK status: %s", resp.Status)
 	}
 
