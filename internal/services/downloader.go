@@ -14,23 +14,12 @@ func audioDownloader(videoID string) (string, error) {
 		return "", errors.New("videoID cannot be empty")
 	}
 
-	tempFile, err := os.CreateTemp("", "audio_*.mp3") // Change extension to .webm or a generic one
-	if err != nil {
-		return "", fmt.Errorf("failed to create temp file: %w", err)
-	}
-	defer func() {
-		if err := os.Remove(tempFile.Name()); err != nil {
-			log.Printf("Failed to remove temp file: %s, error: %v", tempFile.Name(), err)
-		}
-	}()
-
-	tempFilePath := tempFile.Name()
-	tempFile.Close()
+	tempFilePath := fmt.Sprintf("/tmp/%s_audio.mp3", videoID) // Unique file name for each download
 
 	log.Printf("Downloading audio to temporary file: %s", tempFilePath)
 
 	videoURL := fmt.Sprintf("https://www.youtube.com/watch?v=%s", videoID)
-	commandString := fmt.Sprintf("yt-dlp -x --audio-format best -o '%s' '%s'", tempFilePath, videoURL)
+	commandString := fmt.Sprintf("yt-dlp -k -x --audio-format mp3 -o '%s' '%s'", tempFilePath, videoURL)
 	cmd := exec.Command("bash", "-c", commandString)
 
 	var stdout, stderr bytes.Buffer
@@ -44,6 +33,13 @@ func audioDownloader(videoID string) (string, error) {
 		log.Printf("yt-dlp stderr: %s", stderr.String())
 		return "", fmt.Errorf("yt-dlp command failed: %w. Stderr: %s", err, stderr.String())
 	}
+
+	if _, err := os.Stat(tempFilePath); os.IsNotExist(err) {
+		log.Printf("Downloaded audio file does not exist: %s", tempFilePath)
+		return "", fmt.Errorf("downloaded audio file does not exist: %s", tempFilePath)
+	}
+
+	log.Printf("Audio downloaded successfully to: %s", tempFilePath)
 
 	return tempFilePath, nil
 }
