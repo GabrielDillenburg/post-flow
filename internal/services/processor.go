@@ -16,51 +16,54 @@ type TranscriptionResult struct {
 func ProcessVideosWorkflow(videos []DomainVideo) (string, error) {
 	var wg sync.WaitGroup
 	resultsChan := make(chan TranscriptionResult, len(videos))
-	var audioFiles []string // Store paths of audio files
+	var audioFiles []string // Slice to store audio file paths
+	var mutex sync.Mutex    // Mutex to protect access to the audioFiles slice
 
+	// First, download all audios
 	for _, video := range videos {
 		wg.Add(1)
 
 		go func(video DomainVideo) {
 			defer wg.Done()
 
-			audioFile, err := audioDownloader(video.ID)
+			audioFilePath, err := audioDownloader(video.ID)
 			if err != nil {
-				log.Printf("Failed to download/extract audio for video %s: %v", video.ID, err)
+				log.Printf("Failed to download audio for video %s: %v", video.ID, err)
 				resultsChan <- TranscriptionResult{VideoID: video.ID, Error: err}
 				return
 			}
 
-			// Add the path of the audio file to the slice
-			audioFiles = append(audioFiles, audioFile)
-
-			transcription, err := TranscriptionAPI(audioFile)
-			if err != nil {
-				log.Printf("Failed to transcribe audio for video %s: %v", video.ID, err)
-				resultsChan <- TranscriptionResult{VideoID: video.ID, Error: err}
-			} else {
-				resultsChan <- TranscriptionResult{VideoID: video.ID, Transcription: transcription}
-			}
+			mutex.Lock()
+			audioFiles = append(audioFiles, audioFilePath) // Safely store the audio file path
+			mutex.Unlock()
 		}(video)
 	}
 
-	go func() {
-		wg.Wait()
-		close(resultsChan)
-	}()
+	// Wait for all downloads to complete
+	wg.Wait()
 
-	var results []TranscriptionResult
-	var hasErrors bool
-	for result := range resultsChan {
-		if result.Error != nil {
-			hasErrors = true
-			log.Printf("Error in processing video ID %s: %v", result.VideoID, result.Error)
-		}
-		results = append(results, result)
+	// process each audio file
+	for _, audioFilePath := range audioFiles {
+		go func(audioFilePath string) {
+			transcription, err := TranscriptionAPI(audioFilePath)
+			if err != nil {
+				log.Printf("Failed to transcribe audio: %v", err)
+				resultsChan <- TranscriptionResult{Error: err}
+				return
+			}
+
+			resultsChan <- TranscriptionResult{Transcription: transcription, Error: nil}
+		}(audioFilePath)
 	}
 
-	if hasErrors {
-		return "", fmt.Errorf("errors occurred during video processing, check logs for details")
+	var results []TranscriptionResult
+
+	for i := 0; i < len(videos); i++ {
+		result := <-resultsChan
+		if result.Error != nil {
+			return "", fmt.Errorf("errors occurred during video processing, check logs for details")
+		}
+		results = append(results, result)
 	}
 
 	summary, err := SendToSummarizationAPI(results)
@@ -70,11 +73,13 @@ func ProcessVideosWorkflow(videos []DomainVideo) (string, error) {
 	}
 
 	// Delete all audio files after all processing is done
+	mutex.Lock()
 	for _, file := range audioFiles {
 		if err := os.Remove(file); err != nil {
 			log.Printf("Failed to delete audio file %s: %v", file, err)
 		}
 	}
+	mutex.Unlock()
 
 	return summary, nil
 }
