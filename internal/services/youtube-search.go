@@ -23,7 +23,7 @@ func GetYouTubeVideos(q Query) ([]DomainVideo, error) {
 		return nil, fmt.Errorf("YOUTUBE_API_KEY environment variable is not set")
 	}
 
-	url := fmt.Sprintf("https://youtube.googleapis.com/youtube/v3/search?part=snippet&maxResults=10&q=%s&key=%s", q, apiKey)
+	url := fmt.Sprintf("https://youtube.googleapis.com/youtube/v3/search?part=snippet&type=video&videoDuration=short&maxResults=5&q=%s&key=%s", q, apiKey)
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching data from YouTube API: %w", err)
